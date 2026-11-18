@@ -337,7 +337,7 @@ footer {
         <div>
             <h1>Monthly Income</h1>
             <p class="subtitle">
-                Track your daily earnings by ticking a box for every ₹200 earned.
+                Track your daily earnings with 3 slots of ₹200 and 3 slots of ₹500.
             </p>
         </div>
         <button class="btn" id="backButton">← Back</button>
@@ -374,14 +374,14 @@ footer {
 
     <div class="section-title">
         <h2>Daily earnings checklist</h2>
-        <small>₹300 per tick · 4 ticks per day</small>
+        <small>3 × ₹200 slots + 3 × ₹500 slots · ₹2,100 maximum per day</small>
     </div>
 
     <div id="dailyIncomeChecklist" class="days"></div>
 
     <p class="note">
         Your checked boxes are saved automatically in this browser.
-        Each checked box adds ₹300 to your daily and monthly earnings.
+        Each checked box adds its displayed amount (₹200 or ₹500) to your daily and monthly earnings.
     </p>
 
     <div class="actions">
@@ -394,9 +394,9 @@ footer {
 </main>
 
 <script>
-const RATE = 300;
-const BOXES_PER_DAY = 4;
-const TARGET = 20000;
+const SLOT_AMOUNTS = [200, 200, 200, 500, 500, 500];
+const DAILY_MAX = SLOT_AMOUNTS.reduce((total, amount) => total + amount, 0);
+const TARGET = 28000;
     
 const monthInput = document.getElementById("incomeMonth");
 const checklist = document.getElementById("dailyIncomeChecklist");
@@ -460,7 +460,7 @@ function render() {
         const checks = document.createElement("div");
         checks.className = "checks";
 
-        for (let i = 0; i < BOXES_PER_DAY; i++) {
+        for (let i = 0; i < SLOT_AMOUNTS.length; i++) {
             const label = document.createElement("label");
             label.className = "income-check";
 
@@ -469,13 +469,13 @@ function render() {
             checkbox.checked = Boolean(data[day] && data[day][i]);
 
             const amount = document.createElement("span");
-            amount.textContent = money(RATE);
+            amount.textContent = money(SLOT_AMOUNTS[i]);
 
             checkbox.addEventListener("change", () => {
                 const updated = readChecks(month);
 
                 if (!updated[day]) {
-                    updated[day] = [false, false, false, false];
+                    updated[day] = Array(SLOT_AMOUNTS.length).fill(false);
                 }
 
                 updated[day][i] = checkbox.checked;
@@ -490,16 +490,20 @@ function render() {
         const dayTotal = document.createElement("div");
         dayTotal.className = "day-total";
 
-        const completed = (data[day] || []).filter(Boolean).length;
-        checkedCount += completed;
-        dayTotal.textContent = money(completed * RATE);
+        const dayChecks = data[day] || [];
+        const dailyEarned = SLOT_AMOUNTS.reduce(
+            (total, amount, index) => total + (dayChecks[index] ? amount : 0),
+            0
+        );
+        checkedCount += dailyEarned;
+        dayTotal.textContent = money(dailyEarned);
 
         row.append(dateBox, checks, dayTotal);
         checklist.appendChild(row);
     }
 
-    const earned = checkedCount * RATE;
-    const potential = daysInMonth * BOXES_PER_DAY * RATE;
+    const earned = checkedCount;
+    const potential = daysInMonth * DAILY_MAX;
 
     document.getElementById("monthlyTotal").textContent = money(earned);
     document.getElementById("potentialTotal").textContent = money(potential);
